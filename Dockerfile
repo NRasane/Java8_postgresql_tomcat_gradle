@@ -1,4 +1,5 @@
-FROM ubuntu:16.04
+#FROM ubuntu:16.04
+FROM ubuntu:xenial
 
 MAINTAINER Nikhil Rasane
 
@@ -6,6 +7,8 @@ ENV TOMCAT_VERSION 8.5.31
 ENV GRADLE_VERSION 4.7
 
 RUN apt-get update && apt-get install -y software-properties-common && apt-get install -y curl && apt-get install -y unzip && apt-get install -y perl
+
+RUN apt-get install dialog apt-utils -y
 
 # add webupd8 repository
 RUN \
@@ -54,30 +57,86 @@ RUN wget http://www-us.apache.org/dist/tomcat/tomcat-8/v${TOMCAT_VERSION}/bin/ap
 RUN cd /tmp && tar xvfz tomcat.tar.gz
 RUN cp -Rv /tmp/apache-tomcat-${TOMCAT_VERSION}/* /usr/local/tomcat/
 EXPOSE 8080
-#CMD /usr/local/tomcat/bin/catalina.sh run
+CMD /usr/local/tomcat/bin/catalina.sh run
 
 
-# Install Postgres
-RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/dists/xenial-pgdg/main" > /etc/apt/sources.list.d/pgdg.list
-RUN apt-get update && apt-get install -y postgresql-10 && apt-get install -y postgresql-client-10 && apt-get install -y postgresql-contrib-10
-USER postgres
+
+####****************################
+####Install postgresql 10
+
+RUN apt-get install dialog apt-utils -y
+
+RUN apt-get -y install wget sudo
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' >> /etc/apt/sources.list.d/pgdg.list
+RUN apt-get update
+RUN apt-get install postgresql-10 -y
+    
+
+
+####Install postgresql 10
+
+#ENV OS_LOCALE="en_US.UTF-8 en_US hu_HU hu_HU.UTF-8"
+#ENV OS_LOCALE="en_US.UTF-8"
+#RUN apt-get update && apt-get install -y locales && locale-gen ${OS_LOCALE}  
+#ENV LANG=${OS_LOCALE} \
+#    LANGUAGE=${OS_LOCALE} \
+#    LC_ALL=${OS_LOCALE} \
+#    PG_VERSION=10 \
+#    PG_USER=postgres \
+#    PG_HOME=/var/lib/postgresql \
+#    PG_RUN_DIR=/run/postgresql \
+#    PG_LOG_DIR=/var/log/postgresql
+    
+#ENV PG_CONF_DIR="/etc/postgresql/${PG_VERSION}/main" \
+#    PG_BIN_DIR="/usr/lib/postgresql/${PG_VERSION}/bin" \
+#    PG_DATA_DIR="${PG_HOME}/${PG_VERSION}/main"
+
+#RUN apt-get install dialog apt-utils -y
+
+#RUN dpkg-reconfigure locales && apt-get install -y wget sudo \
+# && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+# && echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
+# && apt-get update && apt-get install -y postgresql-${PG_VERSION} postgresql-client-${PG_VERSION} postgresql-contrib-${PG_VERSION} lbzip2 \
+## Cleaning
+# && apt-get purge -y --auto-remove wget \
+# && rm -rf ${PG_HOME} \
+# && rm -rf /var/lib/apt/lists/* \
+# && touch /tmp/.EMPTY_DB
+
+#COPY entrypoint.sh /sbin/entrypoint.sh
+#RUN chmod 755 /sbin/entrypoint.sh
+
+#EXPOSE 5432/tcp
+#VOLUME ["${PG_HOME}", "${PG_RUN_DIR}"]
+#CMD ["/sbin/entrypoint.sh"]
+
+
+
+
+
+
+##### Install Postgres
+#RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+#RUN echo "deb http://apt.postgresql.org/pub/repos/apt/dists/xenial-pgdg/main" > /etc/apt/sources.list.d/pgdg.list
+#RUN apt-get update && apt-get install -y postgresql-10 && apt-get install -y postgresql-client-10 && apt-get install -y postgresql-contrib-10
+#USER postgres
 
 #RUN /etc/init.d/postgresql start
 
 # Adjust PostgreSQL configuration so that remote connections to the
 # database are possible.
-RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf
+#RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf
 
 # And add ``listen_addresses`` to ``/etc/postgresql/9.3/main/postgresql.conf``
-RUN echo "listen_addresses='*'" >> /etc/postgresql/10/main/postgresql.conf
+#RUN echo "listen_addresses='*'" >> /etc/postgresql/10/main/postgresql.conf
 
 # Expose the PostgreSQL port
-EXPOSE 5432
+#EXPOSE 5432
 
 # Add VOLUMEs to allow backup of config, logs and databases
-VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
+#VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 
-WORKDIR /home
-ENTRYPOINT ["/etc/init.d/postgresql", "start"]
+#WORKDIR /home
+#ENTRYPOINT ["/etc/init.d/postgresql", "start"]
 
