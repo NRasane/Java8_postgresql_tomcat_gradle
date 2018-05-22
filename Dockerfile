@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y software-properties-common && apt-get i
 
 RUN apt-get install dialog apt-utils -y
 
-# add webupd8 repository
+## add webupd8 repository
 RUN \
     echo "===> add webupd8 repository..."  && \
     echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main" | tee /etc/apt/sources.list.d/webupd8team-java.list  && \
@@ -32,7 +32,7 @@ RUN \
 
 
 
-# Define JAVA_HOME variable
+## Define JAVA_HOME variable
 ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
 
 
@@ -44,7 +44,7 @@ RUN cd /usr/lib \
  && ln -s "/usr/lib/gradle-${GRADLE_VERSION}/bin/gradle" /usr/bin/gradle \
  && rm "gradle-bin.zip"
 
-# Set Appropriate Environmental Variables
+## Set Appropriate Environmental Variables
 ENV GRADLE_HOME /usr/lib/gradle
 ENV PATH $PATH:$GRADLE_HOME/bin
 
@@ -61,16 +61,64 @@ CMD /usr/local/tomcat/bin/catalina.sh run
 
 
 
+
+
+
+
+##### Install Postgresql 10
+RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+#RUN echo "deb http://apt.postgresql.org/pub/repos/apt/dists/xenial-pgdg/main" > /etc/apt/sources.list.d/pgdg.list
+RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > /etc/apt/sources.list.d/pgdg.list
+RUN apt-get update && apt-get -y -q install python-software-properties software-properties-common \
+    && apt-get install -y -q postgresql-10 postgresql-client-10 postgresql-contrib-10
+
+USER postgres
+
+RUN /etc/init.d/postgresql start \
+    && psql --command "CREATE USER pguser WITH SUPERUSER PASSWORD 'pguser';" \
+    && createdb -O pguser pgdb
+
+USER root
+
+RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf
+RUN echo "listen_addresses='*'" >> /etc/postgresql/10/main/postgresql.conf
+
+
+
+# Adjust PostgreSQL configuration so that remote connections to the
+# database are possible.
+#RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf
+
+# And add ``listen_addresses`` to ``/etc/postgresql/9.3/main/postgresql.conf``
+#RUN echo "listen_addresses='*'" >> /etc/postgresql/10/main/postgresql.conf
+
+# Expose the PostgreSQL port
+EXPOSE 5432
+
+
+RUN mkdir -p /var/run/postgresql && chown -R postgres /var/run/postgresql
+# Add VOLUMEs to allow backup of config, logs and databases
+VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
+
+#WORKDIR /home
+#ENTRYPOINT ["/etc/init.d/postgresql", "start"]
+
+
+USER postgres
+CMD ["/usr/lib/postgresql/10/bin/postgres", "-D", "/var/lib/postgresql/10/main", "-c", "config_file=/etc/postgresql/10/main/postgresql.conf"]
+
+
+
 ####****************################
 ####Install postgresql 10
 
-RUN apt-get install dialog apt-utils -y
+#RUN apt-get install dialog apt-utils -y
 
-RUN apt-get -y install wget sudo
-RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' >> /etc/apt/sources.list.d/pgdg.list
-RUN apt-get update
-RUN apt-get install postgresql-10 -y
+#RUN apt-get -y install wget sudo
+#RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+#RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' >> /etc/apt/sources.list.d/pgdg.list
+#RUN apt-get update
+#RUN apt-get install postgresql-10 -y
     
 
 
@@ -104,6 +152,7 @@ RUN apt-get install postgresql-10 -y
 # && rm -rf /var/lib/apt/lists/* \
 # && touch /tmp/.EMPTY_DB
 
+
 #COPY entrypoint.sh /sbin/entrypoint.sh
 #RUN chmod 755 /sbin/entrypoint.sh
 
@@ -111,32 +160,24 @@ RUN apt-get install postgresql-10 -y
 #VOLUME ["${PG_HOME}", "${PG_RUN_DIR}"]
 #CMD ["/sbin/entrypoint.sh"]
 
-
-
-
-
-
-##### Install Postgres
-#RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
-#RUN echo "deb http://apt.postgresql.org/pub/repos/apt/dists/xenial-pgdg/main" > /etc/apt/sources.list.d/pgdg.list
-#RUN apt-get update && apt-get install -y postgresql-10 && apt-get install -y postgresql-client-10 && apt-get install -y postgresql-contrib-10
-#USER postgres
-
-#RUN /etc/init.d/postgresql start
-
-# Adjust PostgreSQL configuration so that remote connections to the
-# database are possible.
-#RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf
-
-# And add ``listen_addresses`` to ``/etc/postgresql/9.3/main/postgresql.conf``
-#RUN echo "listen_addresses='*'" >> /etc/postgresql/10/main/postgresql.conf
-
-# Expose the PostgreSQL port
-#EXPOSE 5432
-
-# Add VOLUMEs to allow backup of config, logs and databases
-#VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
-
 #WORKDIR /home
 #ENTRYPOINT ["/etc/init.d/postgresql", "start"]
+
+
+
+#RUN apt-get update
+#RUN apt-get -y install apt-transport-https ca-certificates curl gnupg2 software-properties-common
+#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+#RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+#RUN apt-get update
+#RUN apt-get -y install docker-ce=17.03.0~ce-0~ubuntu-xenial
+##RUN systemctl daemon-reload
+#CMD service docker restart
+#CMD service docker status
+
+
+#CMD docker run --name postgresql -d -p 5432:5432 postg10
+#CMD docker exec -it postgresql
+
 
