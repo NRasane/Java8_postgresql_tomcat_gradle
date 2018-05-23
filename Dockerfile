@@ -74,9 +74,14 @@ RUN apt-get update && apt-get -y -q install python-software-properties software-
 
 USER postgres
 
+#RUN /etc/init.d/postgresql start \
+#    && psql --command "CREATE USER pguser WITH SUPERUSER PASSWORD 'pguser';" \
+#    && createdb -O pguser pgdb
+    
+    
 RUN /etc/init.d/postgresql start \
-    && psql --command "CREATE USER pguser WITH SUPERUSER PASSWORD 'pguser';" \
-    && createdb -O pguser pgdb
+    && psql --command "ALTER USER postgres WITH PASSWORD 'postgres';"
+
 
 USER root
 
